@@ -1,0 +1,12 @@
+{
+  "ID": "D8AF059F555C48A380AAD5D57B4A5D61",
+  "ActionKeyword": "gd",
+  "Name": "Godot",
+  "Description": "Quickly launch your godot projects from flow launcher",
+  "Author": "DiekoMA",
+  "Version": "1.0.0",
+  "Language": "csharp",
+  "Website": "https://github.com/DiekoMA/Flow.Launcher.Plugin.Godot",
+  "IcoPath": "Assets\\Godot.png",
+  "ExecuteFileName": "Flow.Launcher.Plugin.Godot.dll"
+}
