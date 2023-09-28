@@ -25,13 +25,13 @@ jobs:
       - run: echo ${{steps.version.outputs.prop}} 
       - name: Build
         run: |
-          dotnet publish 'Flow.Plugin.WindowWalker.csproj' -r win-x64  -c Release -o "WindowWalker-${{steps.version.outputs.prop}}"
-          7z a -tzip "WindowWalker-${{steps.version.outputs.prop}}.zip" "./WindowWalker-${{steps.version.outputs.prop}}/*"
-          rm -r "WindowWalker-${{steps.version.outputs.prop}}"
+          dotnet publish 'Flow.Launcher.Plugin.Godot.csproj' -r win-x64  -c Release -o "Godot-${{steps.version.outputs.prop}}"
+          7z a -tzip "Godot-${{steps.version.outputs.prop}}.zip" "./Godot-${{steps.version.outputs.prop}}/*"
+          rm -r "Godot-${{steps.version.outputs.prop}}"
       - name: Publish
         uses: softprops/action-gh-release@v1
         with:
-          files: "WindowWalker*"
+          files: "Godot*"
           tag_name: "v${{steps.version.outputs.prop}}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
