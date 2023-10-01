@@ -34,5 +34,5 @@ jobs:
           files: "Godot*"
           tag_name: "v${{steps.version.outputs.prop}}"
         env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
