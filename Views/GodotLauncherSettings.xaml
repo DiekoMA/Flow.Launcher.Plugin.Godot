@@ -8,14 +8,10 @@
              d:DesignHeight="450" d:DesignWidth="800"
              Loaded="UserControl_Loaded">
     <StackPanel>
-        <StackPanel Margin="4">
-            <TextBlock Text="Godot Executable Path"/>
-            <TextBox Name="GodotDirectoryTextBox"/>
+        <StackPanel Margin="10">
+            <TextBlock Text="Godot Executable Path" Margin="10"/>
+            <TextBox Name="GodotDirectoryTextBox" Margin="10"/>
+            <Button Content="Save" Click="Button_Click" Margin="10,5,10,10"/>
         </StackPanel>
-        <StackPanel Margin="4">
-            <TextBlock Text="Godot Projects Path"/>
-            <TextBox Name="GodotProjectsDirectoryTextBox"/>
-        </StackPanel>
-        <Button Content="Set Paths" Click="Button_Click" Margin="4"/>
     </StackPanel>
 </UserControl>

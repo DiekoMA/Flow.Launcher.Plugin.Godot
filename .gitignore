@@ -1,2 +1,6 @@
 ﻿bin
 obj
+*.vsidx
+.vs/Flow.Launcher.Plugin.Godot/v17/.suo
+.vs/Flow.Launcher.Plugin.Godot/v17/.futdcache.v2
+.vs/Flow.Launcher.Plugin.Godot/DesignTimeBuild/.dtbcache.v2

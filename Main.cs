@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -11,9 +13,10 @@ namespace Flow.Launcher.Plugin.Godot
 {
     public class Godot : IPlugin, ISettingProvider, IContextMenu
     {
-        private const string GodotFileExtension = ".godot";
         private const string GodotIconPath = "Assets\\Godot.png";
+        private string ProjectsConfigPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Godot", "projects.cfg");
         private PluginInitContext _context;
+        private List<GodotProject> projects;
         private Settings _settings;
 
         public Control CreateSettingPanel()
@@ -27,11 +30,43 @@ namespace Flow.Launcher.Plugin.Godot
             _settings = context.API.LoadSettingJsonStorage<Settings>();
         }
 
+        private void GetProjects()
+        {
+            projects = new List<GodotProject>();
+            string currentSection = null;
+            using StreamReader reader = new StreamReader(ProjectsConfigPath);
+            string line;
+            while ((line = reader.ReadLine()) != null)
+            {
+                line = line.Trim();
+
+                if (line.StartsWith("["))
+                {
+                    currentSection = line.Substring(1, line.Length - 2);
+                }
+                else if (!string.IsNullOrEmpty(currentSection) && line.Contains("="))
+                {
+                    string[] parts = line.Split('=');
+                    string key = parts[0].Trim();
+                    string value = parts[1].Trim();
+
+                    projects.Add(new GodotProject
+                    {
+                        ProjectPath = currentSection,
+                        Name = Path.GetFileName(currentSection),
+                        Favorite = bool.Parse(value)
+                    });
+
+                 
+                }
+            }
+        }
+
         public List<Result> LoadContextMenus(Result selectedResult)
         {
             List<Result> contextResults = new List<Result>
             {
-                new () 
+                new ()
                 {
                     Title = "Open containing folder",
                     IcoPath = GodotIconPath,
@@ -41,8 +76,8 @@ namespace Flow.Launcher.Plugin.Godot
                         {
                             StartInfo = new ProcessStartInfo
                             {
-                                FileName = "explorer.exe",
-                                Arguments = selectedResult.SubTitle,
+                                FileName = selectedResult.SubTitle,
+                                Verb = "open",
                                 CreateNoWindow = true,
                                 UseShellExecute = true
                             }
@@ -89,50 +124,48 @@ namespace Flow.Launcher.Plugin.Godot
 
         public List<Result> Query(Query query)
         {
+            GetProjects();
             List<Result> results = new List<Result>();
             try
             {
-                var godotProjectsDirectoryInfo = new DirectoryInfo(_settings.GodotProjectsPath);
-                var projects = godotProjectsDirectoryInfo.GetDirectories();
-                for (int i = 0; i < projects.Length; i++)
+                foreach (var project in projects)
                 {
-                    var singleProject = projects[i].GetFiles(); 
-                    singleProject.ToList().ForEach(delegate (FileInfo file)
+                    var result = new Result();
+                    result.Title = project.Favorite ? $"{project.Name} \u2665" : project.Name;
+                    result.SubTitle = project.ProjectPath;
+                    result.IcoPath = GodotIconPath;
+                    result.Action = x =>
                     {
-                        if (file.FullName.EndsWith(GodotFileExtension))
+                        Process godotProc = new Process()
                         {
-                            results.Add(new Result
+                            StartInfo = new ProcessStartInfo
                             {
-                                Title = file.Directory?.Name ?? "Path not specified",
-                                SubTitle = file.Directory.FullName,
-                                IcoPath = GodotIconPath,
-                                Action = x =>
-                                {
-                                    Process godotProc = new Process()
-                                    {
-                                        StartInfo = new ProcessStartInfo
-                                        {
-                                            FileName = _settings.GodotExecutablePath,
-                                            Arguments = file.FullName,
-                                            UseShellExecute = true,
-                                            CreateNoWindow = true
-                                        }
-                                    };
+                                FileName = _settings.GodotExecutablePath,
+                                Arguments = Path.Combine(Path.GetFullPath(project.ProjectPath), "project.godot"),
+                                UseShellExecute = true,
+                                CreateNoWindow = true
+                            }
+                        };
 
-                                    godotProc.Start();
-                                    return true;
-                                }
-                            });
-                        }
-                    });
+                        godotProc.Start();
+                        return true;
+                    };
+                    results.Add(result);
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                _context.API.ShowMsgError("Invalid Paths", "Please ensure you are using the correct paths");
-                _context.API.ShowMainWindow();
+                _context.API.ShowMsgError("Error reading config file: " + ex.Message);
+                throw;
             }
             return results;
         }
     }
+}
+
+public class GodotProject
+{
+    public string Name { get; set; }
+    public string ProjectPath { get; set; }
+    public bool Favorite { get; set; }
 }
