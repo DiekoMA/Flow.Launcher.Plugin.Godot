@@ -32,12 +32,14 @@ namespace Flow.Launcher.Plugin.Godot
 
         private void UserControl_Loaded(object sender, RoutedEventArgs e)
         {
-            GodotDirectoryTextBox.Text = _settings.GodotExecutablePath ?? "Excecutable path Not Set";
+            GodotDirectoryTextBox.Text = _settings.GodotExecutablePath ?? "Executable path Not Set";
+            ProjectsConfigTextBox.Text = _settings.ProjectsConfigPath ?? "Path to projects.cfg Not Set";
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
             _settings.GodotExecutablePath = GodotDirectoryTextBox.Text;
+            _settings.ProjectsConfigPath = ProjectsConfigTextBox.Text;
             _context.API.SaveSettingJsonStorage<Settings>();
         }
     }

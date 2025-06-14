@@ -14,7 +14,6 @@ namespace Flow.Launcher.Plugin.Godot
     public class Godot : IPlugin, ISettingProvider, IContextMenu
     {
         private const string GodotIconPath = "Assets\\Godot.png";
-        private string ProjectsConfigPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Godot", "projects.cfg");
         private PluginInitContext _context;
         private List<GodotProject> projects;
         private Settings _settings;
@@ -34,7 +33,7 @@ namespace Flow.Launcher.Plugin.Godot
         {
             projects = new List<GodotProject>();
             string currentSection = null;
-            using StreamReader reader = new StreamReader(ProjectsConfigPath);
+            using StreamReader reader = new StreamReader(_settings.ProjectsConfigPath);
             string line;
             while ((line = reader.ReadLine()) != null)
             {
@@ -168,4 +167,13 @@ public class GodotProject
     public string Name { get; set; }
     public string ProjectPath { get; set; }
     public bool Favorite { get; set; }
+}
+public class Settings
+{
+    public string GodotExecutablePath { get; set; } = string.Empty;
+    public string ProjectsConfigPath { get; set; } = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "Godot",
+        "projects.cfg"
+    );
 }
