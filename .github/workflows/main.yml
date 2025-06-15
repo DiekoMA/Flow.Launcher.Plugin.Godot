@@ -33,6 +33,7 @@ jobs:
         with:
           files: "Godot*"
           tag_name: "v${{steps.version.outputs.prop}}"
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
