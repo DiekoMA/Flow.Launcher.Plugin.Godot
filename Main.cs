@@ -1,39 +1,93 @@
-using Flow.Launcher.Plugin;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
+global using System;
+global using System.Collections.Generic;
+global using System.Diagnostics;
+global using System.IO;
+global using System.Linq;
+global using System.Threading;
+global using System.Threading.Tasks;
+global using System.Windows;
+global using CommunityToolkit.Mvvm.ComponentModel;
+global using System.Windows.Controls;
+global using Flow.Launcher.Plugin.Godot.ViewModels;
+global using Flow.Launcher.Plugin.Godot.Views;
+using System.Text;
 
 namespace Flow.Launcher.Plugin.Godot
 {
     public class Godot : IPlugin, ISettingProvider, IContextMenu
     {
         private const string GodotIconPath = "Assets\\Godot.png";
+        private string ProjectsConfigPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Godot", "projects.cfg");
         private PluginInitContext _context;
         private List<GodotProject> projects;
         private Settings _settings;
+        private SettingsViewModel _viewModel;
 
         public Control CreateSettingPanel()
         {
-            return new GodotLauncherSettings(_context, _settings);
+            return new SettingsView(_viewModel);
         }
 
         public void Init(PluginInitContext context)
         {
             _context = context;
             _settings = context.API.LoadSettingJsonStorage<Settings>();
+            _viewModel = new SettingsViewModel(_context, _settings);
         }
 
+        /*private void CreateProject(string projectName)
+        {
+            var projectPath = Path.Combine(_settings.GodotNewProjectsPath);
+            if (!Directory.Exists(projectPath))
+            {
+                Directory.CreateDirectory(projectPath);
+            }
+            
+            var newProjectPath = Path.Combine(projectPath, projectName);
+            if (Directory.Exists(newProjectPath))
+            {
+                _context.API.ShowMsgError($"Project '{projectName}' already exists in '{projectPath}'.");
+                return;
+            }
+
+            var newProjectDirectoryInfo = Directory.CreateDirectory(newProjectPath);
+            using StreamWriter projectFile = new StreamWriter(Path.Combine(newProjectPath, "project.godot"));
+            var projectContent = new StringBuilder();
+            # region Half asleep, will fix later with something else
+            projectContent.AppendLine("; Engine configuration file.");
+            projectContent.AppendLine("; It's best edited using the editor UI and not directly,");
+            projectContent.AppendLine("; since the parameters that go here are not all obvious.");
+            projectContent.AppendLine(";");
+            projectContent.AppendLine("; Format:");
+            projectContent.AppendLine(";   [section] ; section goes between []");
+            projectContent.AppendLine(";   param=value ; assign values to parameters");
+            projectContent.AppendLine("");
+            projectContent.AppendLine("config_version=5");
+            projectContent.AppendLine("");
+            projectContent.AppendLine("[application]");
+            projectContent.AppendLine("");
+            projectContent.AppendLine($"config/name={projectName}");
+            projectContent.AppendLine("config/features=PackedStringArray(\"4.4\", \"GL Compatibility\")");
+            projectContent.AppendLine("config/icon=\"res://icon.svg\"");
+            projectContent.AppendLine("");
+            projectContent.AppendLine("[rendering]");
+            projectContent.AppendLine("");
+            projectContent.AppendLine("renderer/rendering_method=\"gl_compatibility\"");
+            projectContent.AppendLine("renderer/rendering_method.mobile=\"gl_compatibility\"");
+            projectFile.WriteAsync(projectContent.ToString());
+            var godotIndexFile = File.AppendText(ProjectsConfigPath);
+            godotIndexFile.WriteLine($"" +
+                                     $"[{newProjectDirectoryInfo.FullName}]" +
+                                     "favorite=false" +
+                                     "");
+            # endregion
+        }*/
+        
         private void GetProjects()
         {
             projects = new List<GodotProject>();
             string currentSection = null;
-            using StreamReader reader = new StreamReader(_settings.ProjectsConfigPath);
+            using var reader = new StreamReader(ProjectsConfigPath);
             string line;
             while ((line = reader.ReadLine()) != null)
             {
@@ -45,9 +99,9 @@ namespace Flow.Launcher.Plugin.Godot
                 }
                 else if (!string.IsNullOrEmpty(currentSection) && line.Contains("="))
                 {
-                    string[] parts = line.Split('=');
-                    string key = parts[0].Trim();
-                    string value = parts[1].Trim();
+                    var parts = line.Split('=');
+                    var key = parts[0].Trim();
+                    var value = parts[1].Trim();
 
                     projects.Add(new GodotProject
                     {
@@ -55,8 +109,6 @@ namespace Flow.Launcher.Plugin.Godot
                         Name = Path.GetFileName(currentSection),
                         Favorite = bool.Parse(value)
                     });
-
-                 
                 }
             }
         }
@@ -124,7 +176,7 @@ namespace Flow.Launcher.Plugin.Godot
         public List<Result> Query(Query query)
         {
             GetProjects();
-            List<Result> results = new List<Result>();
+            var results = new List<Result>();
             try
             {
                 foreach (var project in projects)
@@ -135,12 +187,17 @@ namespace Flow.Launcher.Plugin.Godot
                     result.IcoPath = GodotIconPath;
                     result.Action = x =>
                     {
-                        Process godotProc = new Process()
+                        var projectPath = Path.GetFullPath(project.ProjectPath);
+                    
+                        // Check if project.godot file exists
+                        var projectFile = Path.Combine(projectPath, "project.godot");
+                        
+                        var godotProc = new Process()
                         {
                             StartInfo = new ProcessStartInfo
                             {
-                                FileName = _settings.GodotExecutablePath,
-                                Arguments = Path.Combine(Path.GetFullPath(project.ProjectPath), "project.godot"),
+                                FileName = _settings.GodotPath,
+                                Arguments =  $"--editor \"{projectFile}\"",
                                 UseShellExecute = true,
                                 CreateNoWindow = true
                             }
@@ -157,23 +214,48 @@ namespace Flow.Launcher.Plugin.Godot
                 _context.API.ShowMsgError("Error reading config file: " + ex.Message);
                 throw;
             }
+            
+            # region For Later
+            /*if (query.Search.Length < 2)
+            {
+                results.Add(new Result()
+                {
+                    Title = "gd create <project name>",
+                    SubTitle = string.IsNullOrEmpty(_settings.GodotNewProjectsPath) ? "You need to set a path in the settings" : "Creates a new project in the project folder assigned in the settings.",
+                });
+                results.Add(new Result()
+                {
+                    Title = "gd list <project name>",
+                    SubTitle = "Lists all Godot projects in the configured projects folder.",
+                });
+            }
+            else
+            {
+                switch (query.Search.ToLower())
+                {
+                    case "create": 
+                        results.Add(new Result()
+                        {
+                            Title = query.ThirdSearch,
+                            SubTitle = string.IsNullOrEmpty(_settings.GodotNewProjectsPath) ? "You need to set a path in the settings" : "Creates a new project in the project folder assigned in the settings.",
+                            Action = c =>
+                            {
+                                if (string.IsNullOrEmpty(_settings.GodotNewProjectsPath))
+                                {
+                                    _context.API.OpenSettingDialog();
+                                }
+                                CreateProject(query.ThirdSearch);
+                                return true;
+                            }
+                        });
+                        break;
+                    
+                    case "list":
+                        break;
+                }
+            }*/
+            # endregion
             return results;
         }
     }
-}
-
-public class GodotProject
-{
-    public string Name { get; set; }
-    public string ProjectPath { get; set; }
-    public bool Favorite { get; set; }
-}
-public class Settings
-{
-    public string GodotExecutablePath { get; set; } = string.Empty;
-    public string ProjectsConfigPath { get; set; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "Godot",
-        "projects.cfg"
-    );
 }

@@ -1,11 +1,9 @@
-﻿using System;
-using System.IO;
-
-namespace Flow.Launcher.Plugin.Godot;
+﻿namespace Flow.Launcher.Plugin.Godot;
 
 public class Settings
 {
-    public string GodotExecutablePath{ get; set; }
+    public string GodotPath{ get; set; }
+    public string GodotNewProjectsPath{ get; set; }
 
     /// <summary>
     /// Gets or sets the path to the Godot projects configuration file.

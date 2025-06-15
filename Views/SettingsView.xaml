@@ -1,0 +1,24 @@
+﻿<UserControl
+    d:DataContext="{d:DesignInstance viewModels:SettingsViewModel}"
+    d:DesignHeight="300"
+    d:DesignWidth="300"
+    mc:Ignorable="d"
+    x:Class="Flow.Launcher.Plugin.Godot.Views.SettingsView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:Flow.Launcher.Plugin.Godot.Views"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:viewModels="clr-namespace:Flow.Launcher.Plugin.Godot.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel>
+        <StackPanel Margin="10">
+            <Label Content="Settings are autosaved as soon as the value is changed."></Label>
+            <TextBlock Margin="10" Text="Godot Path (EXE Path only)" />
+            <TextBox Margin="10,0,10,0" Text="{Binding GodotPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            <TextBlock Text="Projects Config Path" Margin="10"/>
+            <TextBox Text="{Binding GodotProjectsConfigPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="10"/>
+            <TextBlock Margin="10" Text="Godot Projects Path (This is for Projects created with the plugin)" />
+            <TextBox Margin="10,0,10,0" Text="{Binding GodotNewProjectsPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>
