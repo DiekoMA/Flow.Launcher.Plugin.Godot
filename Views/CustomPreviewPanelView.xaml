@@ -1,0 +1,29 @@
+﻿<UserControl x:Class="Flow.Launcher.Plugin.Godot.Views.CustomPreviewPanelView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             d:DataContext="{d:DesignInstance viewModels:CustomPreviewPanelViewModel}"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:Flow.Launcher.Plugin.Godot.Views"
+             xmlns:viewModels="clr-namespace:Flow.Launcher.Plugin.Godot.ViewModels"
+             mc:Ignorable="d"
+             d:DesignHeight="300" d:DesignWidth="300">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <Image Source="{Binding SelectedGodotProject.IconPath}" Margin="5" Grid.Column="0" Grid.Row="0" Width="100" Height="100" MaxHeight="200" MaxWidth="200"/>
+        <StackPanel Margin="5" Grid.Column="1" Grid.Row="0" Orientation="Vertical">
+            <TextBlock Text="{Binding SelectedGodotProject.Name}"/>
+            <TextBlock Text="{Binding SelectedGodotProject.Description}"/>
+            <TextBlock Text="{Binding SelectedGodotProject.ProjectPath}"/>
+            <TextBlock Text="{Binding SelectedGodotProject.Version}"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

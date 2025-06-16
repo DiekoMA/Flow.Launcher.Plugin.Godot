@@ -104,10 +104,14 @@ namespace Flow.Launcher.Plugin.Godot
                     var value = parts[1].Trim();
 
                     var projectInfo = ParseProjectFile(currentSection);
+                    string version = projectInfo.Version ?? string.Empty;
+                    string description = projectInfo.Description ?? string.Empty;
                     string iconPath = projectInfo.IconPath ?? GodotIconPath;
                     projects.Add(new GodotProject
                     {
                         ProjectPath = currentSection,
+                        Version = version,
+                        Description = description,
                         Name = projectInfo.Name ?? Path.GetFileName(currentSection),
                         IconPath = iconPath,
                         Favorite = bool.Parse(value),
@@ -117,17 +121,15 @@ namespace Flow.Launcher.Plugin.Godot
             }
         }
 
-        private (string Name, string IconPath) ParseProjectFile(string projectPath)
+        private GodotProject ParseProjectFile(string projectPath)
         {
             string projectFilePath = Path.Combine(projectPath, "project.godot");
-            string projectName = null;
-            string iconPath = null;
+            var parsedProject = new GodotProject();
 
             if (!File.Exists(projectFilePath))
             {
-                return (null, null);
+                return null;
             }
-
             try
             {
                 string currentSection = null;
@@ -151,7 +153,7 @@ namespace Flow.Launcher.Plugin.Godot
 
                             if (key == "config/name")
                             {
-                                projectName = value;
+                                parsedProject.Name = value;
                             }
                             else if (key == "config/icon")
                             {
@@ -162,9 +164,17 @@ namespace Flow.Launcher.Plugin.Godot
                                     string fullIconPath = Path.Combine(projectPath, relativePath.Replace('/', Path.DirectorySeparatorChar));
                                     if (File.Exists(fullIconPath) && IsSupportedIconFormat(fullIconPath))
                                     {
-                                        iconPath = fullIconPath;
+                                        parsedProject.IconPath = fullIconPath;
                                     }
                                 }
+                            }
+                            else if (key == "config/description")
+                            {
+                                parsedProject.Description = value;
+                            }
+                            else if (key == "config/version")
+                            {
+                                parsedProject.Version = value;
                             }
                         }
                     }
@@ -174,7 +184,7 @@ namespace Flow.Launcher.Plugin.Godot
             {
                 // Ignore parse errors
             }
-            return (projectName, iconPath);
+            return parsedProject;
         }
 
         private bool IsSupportedIconFormat(string iconPath)
@@ -291,8 +301,9 @@ namespace Flow.Launcher.Plugin.Godot
                 foreach (var project in filteredProjects)
                 {
                     var result = new Result();
-                    result.Title = project.Favorite ? $"{project.Name} \u2665" : project.Name;
-                    result.SubTitle = project.ProjectPath;
+                    result.Title = project.Favorite ? $"{project.Name} - {project.Version} \u2665" : project.Name;
+                    result.SubTitle = $"{project.ProjectPath} \n{project.Description}";
+                    //result.PreviewPanel = new Lazy<UserControl>(() => new CustomPreviewPanelView(new CustomPreviewPanelViewModel(project)));
                     result.IcoPath = project.IconPath ?? GodotIconPath;
 
                     // Calculate score for better ranking
