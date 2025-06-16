@@ -103,24 +103,119 @@ namespace Flow.Launcher.Plugin.Godot
                     var key = parts[0].Trim();
                     var value = parts[1].Trim();
 
+                    var projectInfo = ParseProjectFile(currentSection);
+                    string iconPath = projectInfo.IconPath ?? GodotIconPath;
                     projects.Add(new GodotProject
                     {
                         ProjectPath = currentSection,
-                        Name = Path.GetFileName(currentSection),
-                        Favorite = bool.Parse(value)
+                        Name = projectInfo.Name ?? Path.GetFileName(currentSection),
+                        IconPath = iconPath,
+                        Favorite = bool.Parse(value),
+                        LastModified = GetProjectLastModified(currentSection)
                     });
                 }
             }
         }
 
+        private (string Name, string IconPath) ParseProjectFile(string projectPath)
+        {
+            string projectFilePath = Path.Combine(projectPath, "project.godot");
+            string projectName = null;
+            string iconPath = null;
+
+            if (!File.Exists(projectFilePath))
+            {
+                return (null, null);
+            }
+
+            try
+            {
+                string currentSection = null;
+                using var reader = new StreamReader(projectFilePath);
+                string line;
+                while ((line = reader.ReadLine()) != null)
+                {
+                    line = line.Trim();
+
+                    if (line.StartsWith("["))
+                    {
+                        currentSection = line.Substring(1, line.Length - 2);
+                    }
+                    else if (currentSection == "application" && line.Contains("="))
+                    {
+                        var parts = line.Split('=', 2);
+                        if (parts.Length == 2)
+                        {
+                            var key = parts[0].Trim();
+                            var value = parts[1].Trim().Trim('"');
+
+                            if (key == "config/name")
+                            {
+                                projectName = value;
+                            }
+                            else if (key == "config/icon")
+                            {
+                                // Convert Godot resource path to actual file path
+                                if (value.StartsWith("res://"))
+                                {
+                                    string relativePath = value.Substring(6);
+                                    string fullIconPath = Path.Combine(projectPath, relativePath.Replace('/', Path.DirectorySeparatorChar));
+                                    if (File.Exists(fullIconPath) && IsSupportedIconFormat(fullIconPath))
+                                    {
+                                        iconPath = fullIconPath;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Ignore parse errors
+            }
+            return (projectName, iconPath);
+        }
+
+        private bool IsSupportedIconFormat(string iconPath)
+        {
+            if (string.IsNullOrEmpty(iconPath))
+                return false;
+
+            string extension = Path.GetExtension(iconPath).ToLowerInvariant();
+            return extension == ".png" || extension == ".jpg" || extension == ".jpeg" || extension == ".bmp";
+        }
+
+        private DateTime GetProjectLastModified(string projectPath)
+        {
+            string projectFilePath = Path.Combine(projectPath, "project.godot");
+
+            try
+            {
+                if (File.Exists(projectFilePath))
+                {
+                    return File.GetLastWriteTime(projectFilePath);
+                }
+            }
+            catch (Exception)
+            {
+                // Ignore errors
+            }
+
+            return DateTime.MinValue;
+        }
+
         public List<Result> LoadContextMenus(Result selectedResult)
         {
+            // Use the icon from the selected result, fallback to plugin icon if not available
+            string iconPath = selectedResult.IcoPath ?? GodotIconPath;
+
             List<Result> contextResults = new List<Result>
             {
                 new ()
                 {
                     Title = "Open containing folder",
-                    IcoPath = GodotIconPath,
+                    IcoPath = iconPath,
                     Action = x =>
                     {
                         Process explorerProc = new Process
@@ -141,7 +236,7 @@ namespace Flow.Launcher.Plugin.Godot
                 new ()
                 {
                     Title = "Copy Path",
-                    IcoPath = GodotIconPath,
+                    IcoPath = iconPath,
                     Action = x =>
                     {
                         Clipboard.SetText(selectedResult.SubTitle);
@@ -152,7 +247,7 @@ namespace Flow.Launcher.Plugin.Godot
                 new ()
                 {
                     Title = "Open with shell",
-                    IcoPath = GodotIconPath,
+                    IcoPath = iconPath,
                     Action = x =>
                     {
                         Process shellProc = new Process
@@ -179,19 +274,54 @@ namespace Flow.Launcher.Plugin.Godot
             var results = new List<Result>();
             try
             {
-                foreach (var project in projects)
+                // Filter projects based on search query
+                var filteredProjects = projects.Where(project =>
+                {
+                    if (string.IsNullOrWhiteSpace(query.Search))
+                        return true;
+
+                    string searchTerm = query.Search.ToLowerInvariant();
+                    return project.Name?.ToLowerInvariant().Contains(searchTerm) == true ||
+                           Path.GetFileName(project.ProjectPath).ToLowerInvariant().Contains(searchTerm);
+                })
+                .OrderByDescending(project => project.Favorite) // Favorites first
+                .ThenByDescending(project => project.LastModified) // Then by most recently modified
+                .ThenBy(project => project.Name); // Then by name alphabetically
+
+                foreach (var project in filteredProjects)
                 {
                     var result = new Result();
                     result.Title = project.Favorite ? $"{project.Name} \u2665" : project.Name;
                     result.SubTitle = project.ProjectPath;
-                    result.IcoPath = GodotIconPath;
+                    result.IcoPath = project.IconPath ?? GodotIconPath;
+
+                    // Calculate score for better ranking
+                    if (!string.IsNullOrWhiteSpace(query.Search))
+                    {
+                        string searchTerm = query.Search.ToLowerInvariant();
+                        string projectName = project.Name?.ToLowerInvariant() ?? "";
+
+                        if (projectName.StartsWith(searchTerm))
+                            result.Score = 100; // Exact prefix match gets highest score
+                        else if (projectName.Contains(searchTerm))
+                            result.Score = 80; // Contains match gets high score
+                        else
+                            result.Score = 60; // Other matches get lower score
+
+                        // Boost score for favorites
+                        if (project.Favorite)
+                            result.Score += 20;
+                    }
+                    else
+                    {
+                        // When no search query, favorites get higher score
+                        result.Score = project.Favorite ? 100 : 80;
+                    }
+
                     result.Action = x =>
                     {
                         var projectPath = Path.GetFullPath(project.ProjectPath);
-                    
-                        // Check if project.godot file exists
                         var projectFile = Path.Combine(projectPath, "project.godot");
-                        
                         var godotProc = new Process()
                         {
                             StartInfo = new ProcessStartInfo
@@ -202,7 +332,6 @@ namespace Flow.Launcher.Plugin.Godot
                                 CreateNoWindow = true
                             }
                         };
-
                         godotProc.Start();
                         return true;
                     };
