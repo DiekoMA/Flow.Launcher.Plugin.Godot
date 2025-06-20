@@ -17,8 +17,8 @@
             <TextBox Margin="10,0,10,0" Text="{Binding GodotPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
             <TextBlock Text="Projects Config Path" Margin="10"/>
             <TextBox Text="{Binding GodotProjectsConfigPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="10"/>
-            <TextBlock Margin="10" Text="Godot Projects Path (This is for Projects created with the plugin)" />
-            <TextBox Margin="10,0,10,0" Text="{Binding GodotNewProjectsPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            <!--<TextBlock Margin="10" Text="Godot Projects Path (This is for Projects created with the plugin)" />
+            <TextBox Margin="10,0,10,0" Text="{Binding GodotNewProjectsPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />-->
         </StackPanel>
     </StackPanel>
 </UserControl>

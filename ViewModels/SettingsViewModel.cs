@@ -32,11 +32,12 @@ public partial class SettingsViewModel : ObservableObject
                 _settings.ProjectsConfigPath = value;
                 OnPropertyChanged();
                 _context.API.SavePluginSettings();
+                _context.API.ReloadAllPluginData();
             }
         }
     } 
     
-    private string _godotNewProjectsPath;
+    /*private string _godotNewProjectsPath;
 
     public string GodotNewProjectsPath
     {
@@ -50,7 +51,7 @@ public partial class SettingsViewModel : ObservableObject
                 _context.API.SavePluginSettings();
             }
         }
-    }
+    }*/
     
     
     public SettingsViewModel(PluginInitContext context, Settings settings)
@@ -58,6 +59,7 @@ public partial class SettingsViewModel : ObservableObject
         _context = context;
         _settings = settings;
         GodotPath = _settings.GodotPath;
-        GodotNewProjectsPath = _settings.GodotNewProjectsPath;
+        GodotProjectsConfigPath = _settings.ProjectsConfigPath;
+        //GodotNewProjectsPath = _settings.GodotNewProjectsPath;
     }
 }
